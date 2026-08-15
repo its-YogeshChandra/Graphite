@@ -2,6 +2,7 @@ use super::PointId;
 use super::algorithms::offset_subpath::MAX_ABSOLUTE_DIFFERENCE;
 use crate::subpath::{BezierHandles, ManipulatorGroup};
 use crate::vector::{SegmentId, Vector};
+use core_types::list::{Item, List};
 use dyn_any::DynAny;
 use glam::DVec2;
 use kurbo::{BezPath, CubicBez, Line, ParamCurve, ParamCurveDeriv, PathSeg, Point, QuadBez};
@@ -47,6 +48,57 @@ pub enum RowsOrColumns {
 	#[default]
 	Rows = 0,
 	Columns,
+}
+
+/// A box's four corner values, such as a rectangle's corner radii, expanded on read from any number of stored
+/// values by the CSS `border-radius` shorthand rules.
+///
+/// Wraps a `List<f64>` so the Data panel can introspect its values, mirroring how `DashPattern` wraps its lengths,
+/// while remaining a single rank-0 value on the wire.
+#[derive(Default, Debug, Clone, PartialEq, graphene_hash::CacheHash, DynAny)]
+pub struct BoxCorners(pub List<f64>);
+
+impl BoxCorners {
+	/// Expands the stored values to the four corners, clockwise from the top-left, by the CSS `border-radius` shorthand rules.
+	/// - `[]` → `[0, 0, 0, 0]`
+	/// - `[a]` → `[a, a, a, a]`
+	/// - `[a, b]` → `[a, b, a, b]`
+	/// - `[a, b, c]` → `[a, b, c, b]`
+	/// - `[a, b, c, d, …]` → `[a, b, c, d]`
+	pub fn to_corner_values(&self) -> [f64; 4] {
+		let values: Vec<f64> = self.0.iter_element_values().copied().collect();
+		match values.as_slice() {
+			[] => [0., 0., 0., 0.],
+			&[a] => [a, a, a, a],
+			&[a, b] => [a, b, a, b],
+			&[a, b, c] => [a, b, c, b],
+			&[a, b, c, d, ..] => [a, b, c, d],
+		}
+	}
+}
+
+impl From<f64> for BoxCorners {
+	fn from(value: f64) -> Self {
+		Self(List::new_from_element(value))
+	}
+}
+
+impl From<Vec<f64>> for BoxCorners {
+	fn from(values: Vec<f64>) -> Self {
+		Self(values.into_iter().map(Item::new_from_element).collect())
+	}
+}
+
+impl From<&str> for BoxCorners {
+	fn from(text: &str) -> Self {
+		Self::from(core_types::misc::parse_f64_list(text))
+	}
+}
+
+impl From<String> for BoxCorners {
+	fn from(text: String) -> Self {
+		Self::from(text.as_str())
+	}
 }
 
 pub trait AsU64 {
@@ -103,9 +155,12 @@ pub enum GridType {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[widget(Radio)]
 pub enum ArcType {
+	/// Leaves the two ends of the arc unconnected.
 	#[default]
 	Open = 0,
+	/// Connects the two ends of the arc with a straight line.
 	Closed,
+	/// Connects the two ends of the arc to its center, forming a wedge.
 	PieSlice,
 }
 
@@ -508,9 +563,9 @@ pub struct HandleId {
 impl std::fmt::Display for HandleId {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self.ty {
-			// I haven't checked if "out" and "in" are reversed, or are accurate translations of the "primary" and "end" terms used in the `HandleType` enum, so this naming is an assumption.
-			HandleType::Primary => write!(f, "{} out", self.segment.inner()),
-			HandleType::End => write!(f, "{} in", self.segment.inner()),
+			// The primary handle sits at the segment's start anchor and the end handle at its end anchor
+			HandleType::Primary => write!(f, "Segment {} (start handle)", self.segment.inner()),
+			HandleType::End => write!(f, "Segment {} (end handle)", self.segment.inner()),
 		}
 	}
 }

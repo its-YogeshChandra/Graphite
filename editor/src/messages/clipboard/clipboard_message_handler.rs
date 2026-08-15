@@ -182,13 +182,8 @@ impl MessageHandler<ClipboardMessage, ClipboardMessageContext<'_>> for Clipboard
 				let mut resource_ids = HashSet::new();
 				for item in &items {
 					match item {
-						ClipboardItem::Layer(entry) => entry
-							.nodes
-							.iter()
-							.for_each(|(_, template)| network_interface::collect_node_resources(&template.document_node, &mut resource_ids)),
-						ClipboardItem::Nodes(nodes) => nodes
-							.iter()
-							.for_each(|(_, template)| network_interface::collect_node_resources(&template.document_node, &mut resource_ids)),
+						ClipboardItem::Layer(entry) => entry.nodes.iter().for_each(|(_, template)| network_interface::collect_template_resources(template, &mut resource_ids)),
+						ClipboardItem::Nodes(nodes) => nodes.iter().for_each(|(_, template)| network_interface::collect_template_resources(template, &mut resource_ids)),
 						ClipboardItem::Vector(_) | ClipboardItem::Resource(_) => {}
 					}
 				}
@@ -252,9 +247,20 @@ impl MessageHandler<ClipboardMessage, ClipboardMessageContext<'_>> for Clipboard
 				let mut vectors = Vec::new();
 				let mut resources = Vec::new();
 				for item in items {
+					// Pasted templates skip document migration, so stored types normalize here
 					match item {
-						ClipboardItem::Layer(entry) => layers.push(entry),
-						ClipboardItem::Nodes(nodes) => node_groups.push(nodes),
+						ClipboardItem::Layer(mut entry) => {
+							for (_, template) in &mut entry.nodes {
+								template.normalize_stored_types();
+							}
+							layers.push(entry);
+						}
+						ClipboardItem::Nodes(mut nodes) => {
+							for (_, template) in &mut nodes {
+								template.normalize_stored_types();
+							}
+							node_groups.push(nodes);
+						}
 						ClipboardItem::Vector(vector) => vectors.push(vector),
 						ClipboardItem::Resource(resource) => resources.push(resource),
 					}
