@@ -1,30 +1,18 @@
-pub mod brush;
-mod brush_cache;
-pub mod brush_stroke;
+use core_types::list::{ATTR_BRUSH_STYLE, Item, List};
+use core_types::{Color, Ctx};
+use graphic_types::Graphic;
 
-pub mod migrations {
-	use crate::brush_stroke::BrushStroke;
+pub mod airbrush;
 
-	// TODO: Eventually remove this document upgrade code
-	pub fn migrate_to_brush_strokes<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Vec<BrushStroke>, D::Error> {
-		use serde::Deserialize;
+pub use brush_types::*;
 
-		#[derive(serde::Deserialize)]
-		struct LegacyTable {
-			#[serde(alias = "instances", alias = "instance")]
-			element: Vec<BrushStroke>,
-		}
-
-		#[derive(serde::Deserialize)]
-		#[serde(untagged)]
-		enum BrushStrokesFormat {
-			Strokes(Vec<BrushStroke>),
-			List(LegacyTable),
-		}
-
-		Ok(match BrushStrokesFormat::deserialize(deserializer)? {
-			BrushStrokesFormat::Strokes(strokes) => strokes,
-			BrushStrokesFormat::List(list) => list.element,
-		})
-	}
+#[node_macro::node(category("Raster: Brush"))]
+fn brush_strokes(_: impl Ctx, strokes: List<Stroke>, color: List<Color>, #[default(20.)] diameter: Item<f64>, #[default(0.8)] hardness: Item<f64>, #[default(1.)] flow: Item<f64>) -> List<Graphic> {
+	let style = BrushStyle {
+		color: color.element(0).copied().unwrap_or_default(),
+		diameter: diameter.into_element().max(0.),
+		hardness: hardness.into_element().clamp(0., 1.),
+		flow: flow.into_element().clamp(0., 1.),
+	};
+	List::new_from_item(Item::new_from_element(Graphic::from(strokes)).with_attribute(ATTR_BRUSH_STYLE, style))
 }

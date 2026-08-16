@@ -97,6 +97,8 @@ pub const ATTR_JOIN: &str = "join";
 pub const ATTR_JOIN_MITER_LIMIT: &str = "join_miter_limit";
 /// Stroke coverage's `StrokeAlign` (implicit default `Center`), on the `Item<Cover>` inside a `Coverage`.
 pub const ATTR_ALIGN: &str = "align";
+/// Brush stroke item's `brush_types::BrushStyle` — the brush settings its strokes were drawn with.
+pub const ATTR_BRUSH_STYLE: &str = "brush_style";
 /// Text item's font size in document-space units (`f64`, implicit default `24.`).
 pub const ATTR_FONT_SIZE: &str = "font_size";
 /// Text item's font, as a `Resource` of the loaded font file.

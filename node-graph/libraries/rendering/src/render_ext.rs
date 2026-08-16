@@ -294,7 +294,8 @@ impl RenderExt for List<Graphic> {
 			| Some(Graphic::RasterCPUList(_))
 			| Some(Graphic::RasterGPUList(_))
 			| Some(Graphic::GraphicList(_))
-			| Some(Graphic::TextList(_)) => {
+			| Some(Graphic::TextList(_))
+			| Some(Graphic::StrokeList(_)) => {
 				let bounds = if target == PaintTarget::Stroke {
 					// To prevent a wraparound artefact occurring when the tile boundary and the stroke region are perfectly aligned, the local coordinate is expanded slightly.
 					let inverse = |len: f64| if len > 0. { 1. / len } else { 0. };
