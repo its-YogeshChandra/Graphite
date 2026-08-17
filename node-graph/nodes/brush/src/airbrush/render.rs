@@ -28,7 +28,6 @@ pub(super) struct Frame<'a> {
 	finished: &'a [StyledStroke],
 	active: &'a StyledStroke,
 }
-
 impl<'a> Frame<'a> {
 	pub(super) fn new(strokes: &'a [StyledStroke]) -> Option<Self> {
 		let (active, finished) = strokes.split_last()?;
